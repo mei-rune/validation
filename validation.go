@@ -13,6 +13,7 @@ import (
 	"github.com/go-playground/locales/zh"
 	ut "github.com/go-playground/universal-translator"
 	validator "github.com/go-playground/validator/v10"
+	"github.com/runner-mei/errors"
 
 	entran "github.com/go-playground/validator/v10/translations/en"
 	zhtran "github.com/go-playground/validator/v10/translations/zh"
@@ -48,25 +49,93 @@ func init() {
 	entran.RegisterDefaultTranslations(DefaultStructValidator, En)
 }
 
+type ValidationErrors []ValidationError
+
+func (err ValidationErrors) ErrorCode() int {
+	return errors.ErrValidationError.ErrorCode()
+}
+
+func (err ValidationErrors) HTTPCode() int {
+	return errors.ErrValidationError.HTTPCode()
+}
+
+func (err ValidationErrors) Error() string {
+	var sb strings.Builder
+	for idx := range err {
+		sb.WriteString(err[idx].Key)
+		sb.WriteString(": ")
+		sb.WriteString(err[idx].Message)
+		sb.WriteString(";")
+	}
+	return sb.String()
+}
+
+func (err ValidationErrors) ToValidationErrors() []ValidationError {
+	return err
+}
+
 // ValidationError simple struct to store the Message & Key of a validation error
 type ValidationError struct {
 	Message, Key string
 }
 
+func (e *ValidationError) ErrorCode() int {
+	return errors.ErrValidationError.ErrorCode()
+}
+
+func (e *ValidationError) HTTPCode() int {
+	return errors.ErrValidationError.HTTPCode()
+}
+
 // String returns the Message field of the ValidationError struct.
-func (e *ValidationError) String() string {
+func (e *ValidationError) Error() string {
 	if e == nil {
 		return ""
 	}
 	return e.Message
 }
 
+func (e *ValidationError) ToValidationErrors() []ValidationError {
+	return []ValidationError{*e}
+}
+
+func NewValidationError(field, message string) error {
+	return &ValidationError{Key: field, Message: message}
+}
+
+func ToValidationErrors(err error) (bool, []ValidationError) {
+	e, ok := err.(interface {
+		ToValidationErrors() []ValidationError
+	})
+	if ok {
+		return true, e.ToValidationErrors()
+	}
+	return false, nil
+}
+
+type TranslateFunc func(locale, message string, args ...interface{}) string
+
+func New(locale string, translator TranslateFunc) *Validation {
+	return &Validation{
+		Locale:     locale,
+		Translator: translator,
+	}
+}
+
 // Validation context manages data validation and error messages.
 type Validation struct {
 	Validator  *StructValidator
 	Locale     string
+	Translator TranslateFunc
 	Errors     []ValidationError
-	Translator func(locale, message string, args ...interface{}) string
+}
+
+// New a new Validation
+func (v *Validation) New() *Validation {
+	n := &Validation{}
+	*n = *v
+	n.Clear()
+	return n
 }
 
 // Clear *all* ValidationErrors
@@ -90,6 +159,10 @@ func (v *Validation) ErrorMap() map[string]ValidationError {
 		}
 	}
 	return m
+}
+
+func (v *Validation) ToError() error {
+	return ValidationErrors(v.Errors)
 }
 
 // Error adds an error to the validation context.
