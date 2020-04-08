@@ -10,20 +10,17 @@ import (
 )
 
 func TryToRevelValidateErrors(v *revel.Validation, err error, prefix string) bool {
-	e, ok := err.(interface {
-		ToValidationErrors() []validation.ValidationError
-	})
-	if ok {
-		errList := e.ToValidationErrors()
-		for idx := range errList {
-			v.Errors = append(v.Errors, &revel.ValidationError{
-				Key:     prefix + errList[idx].Key,
-				Message: errList[idx].Message,
-			})
-		}
-		return true
+	ok, errList := validation.ToValidationErrors(err)
+	if !ok {
+		return ok
 	}
-	return false
+	for idx := range errList {
+		v.Errors = append(v.Errors, &revel.ValidationError{
+			Key:     prefix + errList[idx].Key,
+			Message: errList[idx].Message,
+		})
+	}
+	return true
 }
 
 func ToRevelErrors(errList []validation.ValidationError, prefix string) []revel.ValidationError {
@@ -84,12 +81,14 @@ func Validate(value interface{}, v *revel.Validation, prefix string) bool {
 	if ok {
 		return v4(v)
 	}
-	rv := reflect.ValueOf(value)
-	if rv.CanAddr() {
-		return Validate(rv.Addr().Interface(), v, prefix)
-	} else if rv.Kind() != reflect.Ptr {
-		panic(errors.New("请用指针试试"))
+
+	rValue := reflect.ValueOf(value)
+	if rValue.CanAddr() {
+		return Validate(rValue.Addr().Interface(), v, prefix)
+	} else if rValue.Kind() != reflect.Ptr {
+		panic(errors.New("请试试用指针不要用值对象"))
 	}
+
 	v.Errors = append(v.Errors, &revel.ValidationError{Message: fmt.Sprintf("revel_ext.Validate: %T", value)})
 	return v.HasErrors()
 }
