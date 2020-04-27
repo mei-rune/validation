@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/zh"
@@ -243,6 +244,10 @@ func (v *Validation) Range(field string, n, min, max int) *ValidationResult {
 
 func (v *Validation) RangeFloat(field string, n, min, max float64) *ValidationResult {
 	return v.apply(Range{Min{min}, Max{max}}, field, n)
+}
+
+func (v *Validation) TimeStartEndCheck(field string, startTime, endTime time.Time) *ValidationResult {
+	return v.apply(TimeStartEndCheck{start: startTime, end: endTime}, field, startTime)
 }
 
 func (v *Validation) MinSize(field string, obj interface{}, min int) *ValidationResult {

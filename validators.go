@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -692,4 +693,25 @@ func (f FilePath) DefaultMessage() string {
 
 func (f FilePath) Message() (string, []interface{}) {
 	return "validation.file_path", emptyMessageArgs
+}
+
+// 开始日期不能大于结束日期
+type TimeStartEndCheck struct {
+	start time.Time
+	end   time.Time
+}
+
+func (m TimeStartEndCheck) IsSatisfied(obj interface{}) bool {
+	if m.start.IsZero() || m.end.IsZero() {
+		return false
+	}
+	return m.end.Before(m.start)
+}
+
+func (m TimeStartEndCheck) DefaultMessage() string {
+	return "start time must is less the end time"
+}
+
+func (m TimeStartEndCheck) Message() (string, []interface{}) {
+	return "validation.time_start_end_check", []interface{}{m.start, m.end}
 }
