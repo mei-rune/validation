@@ -50,6 +50,29 @@ func init() {
 	entran.RegisterDefaultTranslations(DefaultStructValidator, En)
 }
 
+type ValidatableError interface {
+	IsValidationErrors() bool
+	ToValidationErrors() []ValidationError
+}
+
+func ToValidationErrors(err error) (bool, []ValidationError) {
+	e, ok := err.(interface {
+		ToValidationErrors() []ValidationError
+	})
+	if ok {
+		is, ok := err.(interface {
+			IsValidationErrors() bool
+		})
+		if ok {
+			if !is.IsValidationErrors() {
+				return false, nil
+			}
+		}
+		return true, e.ToValidationErrors()
+	}
+	return false, nil
+}
+
 type ValidationErrors []ValidationError
 
 func (err ValidationErrors) ErrorCode() int {
@@ -71,13 +94,17 @@ func (err ValidationErrors) Error() string {
 	return sb.String()
 }
 
+func (e *ValidationErrors) IsValidationErrors() bool {
+	return true
+}
+
 func (err ValidationErrors) ToValidationErrors() []ValidationError {
 	return err
 }
 
 // ValidationError simple struct to store the Message & Key of a validation error
 type ValidationError struct {
-	Message, Key string
+	Code, Message, Key string
 }
 
 func (e *ValidationError) ErrorCode() int {
@@ -96,22 +123,16 @@ func (e *ValidationError) Error() string {
 	return e.Message
 }
 
+func (e *ValidationError) IsValidationErrors() bool {
+	return true
+}
+
 func (e *ValidationError) ToValidationErrors() []ValidationError {
 	return []ValidationError{*e}
 }
 
 func NewValidationError(field, message string) error {
 	return &ValidationError{Key: field, Message: message}
-}
-
-func ToValidationErrors(err error) (bool, []ValidationError) {
-	e, ok := err.(interface {
-		ToValidationErrors() []ValidationError
-	})
-	if ok {
-		return true, e.ToValidationErrors()
-	}
-	return false, nil
 }
 
 type TranslateFunc func(locale, message string, args ...interface{}) string
