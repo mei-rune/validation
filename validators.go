@@ -703,9 +703,9 @@ type TimeStartEndCheck struct {
 
 func (m TimeStartEndCheck) IsSatisfied(obj interface{}) bool {
 	if m.start.IsZero() || m.end.IsZero() {
-		return false
+		return true
 	}
-	return m.end.Before(m.start)
+	return !m.end.Before(m.start)
 }
 
 func (m TimeStartEndCheck) DefaultMessage() string {
