@@ -137,6 +137,8 @@ func NewValidationError(field, message string) error {
 
 type TranslateFunc func(locale, message string, args ...interface{}) string
 
+var Default = New("zh", nil)
+
 func New(locale string, translator TranslateFunc) *Validation {
 	return &Validation{
 		Locale:     locale,
