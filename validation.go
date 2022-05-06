@@ -265,6 +265,10 @@ func (v *Validation) Range(field string, n, min, max int) *ValidationResult {
 	return v.RangeFloat(field, float64(n), float64(min), float64(max))
 }
 
+func (v *Validation) Range64(field string, n, min, max int64) *ValidationResult {
+	return v.RangeFloat(field, float64(n), float64(min), float64(max))
+}
+
 func (v *Validation) RangeFloat(field string, n, min, max float64) *ValidationResult {
 	return v.apply(Range{Min{min}, Max{max}}, field, n)
 }
